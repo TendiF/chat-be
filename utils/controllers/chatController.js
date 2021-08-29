@@ -31,7 +31,7 @@ exports.list = function (req, res) {
         data: data,
         page,
         per_page,
-        total_page : Math.round(count / per_page),
+        total_page : Math.ceil(count / per_page),
         count
       });
     })
