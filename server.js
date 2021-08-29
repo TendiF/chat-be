@@ -6,6 +6,9 @@ const io = require('socket.io')(http, {
     methods: ["GET", "POST"]
   }
 })
+
+const chat = require("./utils/routes/chat")
+const chatModel = require("./utils/models/chatModel")
 const cors = require('cors')
 const PORT = process.env.PORT_APP || 8090
 const { addUser, getUser, deleteUser, getUsers } = require('./users')
@@ -24,9 +27,25 @@ io.on('connection', (socket) => {
         callback()
     })
 
-    socket.on('sendMessage', message => {
+    socket.on('sendMessage', (message, callback) => {
+        console.log("message", message)
         const user = getUser(socket.id)
-        io.in(user.room).emit('message', { user: user.name, text: message });
+        if(user?.name){
+            const chat = new chatModel({
+                username : user.name,
+                message : message,
+                room : user.room,
+                created_at : new Date()
+            })
+            chat.save(err => {
+                console.log("err save chat", err)
+                callback(err)
+            })
+            io.in(user.room).emit('message', { username: user.name, message });
+            callback()
+        }else{
+            callback("user not found")
+        }
     })
 
     socket.on("disconnect", () => {
@@ -38,6 +57,8 @@ io.on('connection', (socket) => {
         }
     })
 })
+
+app.use('/chat', chat);
 
 app.get('/', (req, res) => {
     res.send("Server is up and running")
